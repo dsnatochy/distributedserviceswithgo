@@ -13,7 +13,15 @@ var(
 
 	ClientCertFile = configFile("client.pem")
 	ClientKeyFile = configFile("client-key.pem")
-	CA2File = configFile("ca2.pem")
+	CA2File = configFile("ca2.pem") // this was used for testing the untrusted client scenario
+
+	RootClientCertFile = configFile("root-client.pem")
+	RootClientKeyFile = configFile("root-client-key.pem")
+	NobodyClientCertFile = configFile("nobody-client.pem")
+	NobodyClientKeyFile = configFile("nobody-client-key.pem")
+
+	ACLModelFile = configFile("model.conf")
+	ACLPolicyFile = configFile("policy.csv")
 )
 
 func configFile(filename string) string {
