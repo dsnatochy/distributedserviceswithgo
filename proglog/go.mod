@@ -9,6 +9,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/memberlist v0.2.4 // indirect
+	github.com/hashicorp/raft v1.1.1
+	github.com/hashicorp/raft-boltdb v1.1.1
 	github.com/hashicorp/serf v0.8.5
 	github.com/stretchr/testify v1.7.0
 	github.com/travisjeffery/go-dynaport v1.0.0
@@ -20,3 +22,5 @@ require (
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.0 // indirect
 	google.golang.org/protobuf v1.25.0
 )
+
+replace github.com/hashicorp/raft-boltdb => github.com/travisjeffery/raft-boltdb v1.0.0
