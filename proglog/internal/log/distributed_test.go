@@ -35,9 +35,9 @@ func TestMultipleNodes(t *testing.T) {
 		config := log.Config{}
 		config.Raft.StreamLayer = log.NewStreamLayer(ln, nil, nil)
 		config.Raft.LocalID = raft.ServerID(fmt.Sprintf("%d", i))
-		config.Raft.HeartbeatTimeout = 50 * time.Millisecond
-		config.Raft.ElectionTimeout = 50 * time.Millisecond
-		config.Raft.LeaderLeaseTimeout = 50 * time.Millisecond
+		config.Raft.HeartbeatTimeout = 200 * time.Millisecond
+		config.Raft.ElectionTimeout = 200 * time.Millisecond
+		config.Raft.LeaderLeaseTimeout = 200 * time.Millisecond
 		config.Raft.CommitTimeout = 5 * time.Millisecond
 
 		if i == 0 {
@@ -78,10 +78,27 @@ func TestMultipleNodes(t *testing.T) {
 		}, 500*time.Millisecond, 50*time.Millisecond)
 	}
 
-	err := logs[0].Leave("1")
+	// START: get_servers
+	servers, err := logs[0].GetServers()
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(servers))
+	assert.True(t, servers[0].IsLeader)
+	assert.False(t, servers[1].IsLeader)
+	assert.False(t, servers[2].IsLeader)
+
+
+	// START: distributed_log_test_leave
+	err = logs[0].Leave("1")
 	require.NoError(t, err)
 
 	time.Sleep(50 * time.Millisecond)
+
+	servers, err = logs[0].GetServers()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(servers))
+	require.True(t, servers[0].IsLeader)
+	require.False(t, servers[1].IsLeader)
+
 
 	off, err := logs[0].Append(&api.Record{
 		Value: []byte("third"),

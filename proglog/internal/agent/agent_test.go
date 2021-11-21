@@ -63,6 +63,7 @@ func TestAgent(t *testing.T) {
 			StartJoinAddrs:  startJoinAddrs,
 			ACLModelFile:    config.ACLModelFile,
 			ACLPolicyFile:   config.ACLPolicyFile,
+			Bootstrap:       i==0,
 		})
 		assert.NoError(t, err)
 
@@ -108,6 +109,18 @@ func TestAgent(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, consumeResponse.Record.Value, []byte("foo"))
+
+	consumeResponse, err = leaderClient.Consume(
+		context.Background(),
+		&api.ConsumeRequest{
+			Offset: produceResponse.Offset + 1,
+		},
+	)
+	require.Nil(t, consumeResponse)
+	require.Error(t, err)
+	got := grpc.Code(err)
+	want := grpc.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
+	require.Equal(t, got, want)
 }
 
 func client(t *testing.T, agent *agent.Agent, tlsConfig *tls.Config) api.LogClient {

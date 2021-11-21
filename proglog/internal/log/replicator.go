@@ -1,5 +1,6 @@
 package log
 
+/*
 import (
 	"context"
 	"go.uber.org/zap"
@@ -144,3 +145,4 @@ func (r *Replicator) logError(err error, msg, addr string) {
 		zap.Error(err),
 	)
 }
+*/
