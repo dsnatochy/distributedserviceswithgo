@@ -480,6 +480,7 @@ func (l *DistributedLog) Close() error {
 
 func (l *DistributedLog) GetServers() ([]*api.Server, error) {
 	future := l.raft.GetConfiguration()
+	// Error() blocks until future arrives
 	if err := future.Error(); err != nil {
 		return nil, err
 	}

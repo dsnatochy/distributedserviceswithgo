@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -18,6 +17,7 @@ import (
 	api "github.com/dsnatochy/proglog/api/v1"
 	"github.com/dsnatochy/proglog/internal/agent"
 	"github.com/dsnatochy/proglog/internal/config"
+	"github.com/dsnatochy/proglog/internal/loadbalance"
 )
 
 func TestAgent(t *testing.T) {
@@ -46,7 +46,7 @@ func TestAgent(t *testing.T) {
 		rpcPort := ports[1]
 
 		dataDir, err := ioutil.TempDir("", "agent-test-log")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		var startJoinAddrs []string
 		if i != 0 {
@@ -65,18 +65,18 @@ func TestAgent(t *testing.T) {
 			ACLPolicyFile:   config.ACLPolicyFile,
 			Bootstrap:       i==0,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		agents = append(agents, agent)
 	}
 	defer func() {
 		for _, agent := range agents {
 			err := agent.Shutdown()
-			assert.NoError(t, err)
-			assert.NoError(t, os.RemoveAll(agent.Config.DataDir))
+			require.NoError(t, err)
+			require.NoError(t, os.RemoveAll(agent.Config.DataDir))
 		}
 	}()
-	time.Sleep(3 * time.Second)
+	//time.Sleep(3 * time.Second)
 
 	leaderClient := client(t, agents[0], peerTLSConfig)
 	produceResponse, err := leaderClient.Produce(
@@ -87,18 +87,20 @@ func TestAgent(t *testing.T) {
 			},
 		},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+
+	time.Sleep(3 * time.Second)
 	consumeResponse, err := leaderClient.Consume(
 		context.Background(),
 		&api.ConsumeRequest{
 			Offset: produceResponse.Offset,
 		},
 	)
-	assert.NoError(t, err)
-	assert.Equal(t, consumeResponse.Record.Value, []byte("foo"))
+	require.NoError(t, err)
+	require.Equal(t, consumeResponse.Record.Value, []byte("foo"))
 
 	// wait until replication has finished
-	time.Sleep(3 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	followerClient := client(t, agents[1], peerTLSConfig)
 	consumeResponse, err = followerClient.Consume(
@@ -107,8 +109,8 @@ func TestAgent(t *testing.T) {
 			Offset: produceResponse.Offset,
 		},
 	)
-	assert.NoError(t, err)
-	assert.Equal(t, consumeResponse.Record.Value, []byte("foo"))
+	require.NoError(t, err)
+	require.Equal(t, consumeResponse.Record.Value, []byte("foo"))
 
 	consumeResponse, err = leaderClient.Consume(
 		context.Background(),
@@ -127,8 +129,12 @@ func client(t *testing.T, agent *agent.Agent, tlsConfig *tls.Config) api.LogClie
 	tlsCreds := credentials.NewTLS(tlsConfig)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(tlsCreds)}
 	rpcAddr, err := agent.Config.RPCAddr()
-	conn, err := grpc.Dial(fmt.Sprintf("%s", rpcAddr), opts...)
-	assert.NoError(t, err)
+	conn, err := grpc.Dial(fmt.Sprintf(
+		"%s:///%s",
+		loadbalance.Name,
+		rpcAddr,
+	), opts...)
+	require.NoError(t, err)
 	client := api.NewLogClient(conn)
 	return client
 
